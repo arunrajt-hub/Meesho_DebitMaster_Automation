@@ -1,0 +1,23 @@
+# Secrets - never commit
+service_account_key.json
+service_account.json
+gspread_credentials.json
+gspread_authorized_user.json
+*.json
+!requirements*.txt
+
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Temp
+.meesho_sheet_copy_id
+*.xlsx
+*.xls
+*.tmp
