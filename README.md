@@ -62,7 +62,14 @@ python meesho_debit_master_sync.py --reauth  # First time: opens browser to sign
 
 ## Schedule (Daily at 8 PM IST)
 
-**Windows Task Scheduler** (run as Administrator). Uses your PC's local time—set Windows timezone to **(UTC+05:30) India** for 8 PM IST.
+**Option 1: GitHub Actions** (cloud – no PC needed)
+1. Add repository secrets: `Settings` → `Secrets and variables` → `Actions`
+2. Required: `SERVICE_ACCOUNT_JSON`, `GMAIL_APP_PASSWORD`, `WHAPI_TOKEN`, `WHATSAPP_PHONE`
+3. Optional: `GMAIL_SENDER_EMAIL`, `MEESHO_SPREADSHEET_ID`
+4. Workflow runs automatically or manually via `Actions` → `Meesho Debit Master - Daily Sync` → `Run workflow`
+
+**Option 2: Windows Task Scheduler** (local PC)
+Run as Administrator. Uses your PC's local time—set Windows timezone to **(UTC+05:30) India** for 8 PM IST.
 
 ```powershell
 cd "C:\path\to\Meesho_DebitMaster_Automation"

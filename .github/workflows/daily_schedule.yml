@@ -1,0 +1,69 @@
+name: Meesho Debit Master - Daily Sync
+
+on:
+  schedule:
+    # Run daily at 8:00 PM IST (14:30 UTC)
+    # Cron: minute hour day month day-of-week
+    - cron: '30 14 * * *'
+  workflow_dispatch:  # Allow manual run from Actions tab
+
+jobs:
+  run-sync:
+    name: Run Meesho Debit Master Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup Chrome for WhatsApp image conversion
+        id: chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          install-chromedriver: true
+          install-dependencies: true
+
+      - name: Create service account key file
+        env:
+          SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "$SERVICE_ACCOUNT_JSON" > service_account_key.json
+          if [ -f service_account_key.json ]; then
+            echo "Service account key created"
+          else
+            echo "ERROR: SERVICE_ACCOUNT_JSON secret not set"
+            exit 1
+          fi
+
+      - name: Run Meesho Debit Master Sync
+        env:
+          GMAIL_SENDER_EMAIL: ${{ secrets.GMAIL_SENDER_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          WHAPI_TOKEN: ${{ secrets.WHAPI_TOKEN }}
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          MEESHO_SPREADSHEET_ID: ${{ secrets.MEESHO_SPREADSHEET_ID }}
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: python meesho_debit_master_sync.py
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meesho-debit-master-logs
+          path: |
+            *.log
+            meesho_debit_master_log.txt
+          if-no-files-found: ignore
+          retention-days: 7
