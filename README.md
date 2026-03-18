@@ -65,8 +65,9 @@ python meesho_debit_master_sync.py --reauth  # First time: opens browser to sign
 **Option 1: GitHub Actions** (cloud – no PC needed)
 1. Add repository secrets: `Settings` → `Secrets and variables` → `Actions`
 2. Required: `SERVICE_ACCOUNT_JSON`, `GMAIL_APP_PASSWORD`, `WHAPI_TOKEN`, `WHATSAPP_PHONE`
-3. Optional: `GMAIL_SENDER_EMAIL`, `MEESHO_SPREADSHEET_ID`
-4. Workflow runs automatically or manually via `Actions` → `Meesho Debit Master - Daily Sync` → `Run workflow`
+3. For OAuth (when source not shared with SA): `GSPREAD_CREDENTIALS_JSON`, `GSPREAD_AUTHORIZED_USER_JSON` – see [GITHUB_OAUTH_SETUP.md](GITHUB_OAUTH_SETUP.md)
+4. Optional: `GMAIL_SENDER_EMAIL`, `MEESHO_SPREADSHEET_ID`
+5. Workflow runs automatically or manually via `Actions` → `Meesho Debit Master - Daily Sync` → `Run workflow`
 
 **Option 2: Windows Task Scheduler** (local PC)
 Run as Administrator. Uses your PC's local time—set Windows timezone to **(UTC+05:30) India** for 8 PM IST.

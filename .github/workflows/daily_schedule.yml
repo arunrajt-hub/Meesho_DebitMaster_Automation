@@ -47,6 +47,19 @@ jobs:
             exit 1
           fi
 
+      - name: Create OAuth credential files (for source copy when not shared with SA)
+        env:
+          GSPREAD_CREDENTIALS_JSON: ${{ secrets.GSPREAD_CREDENTIALS_JSON }}
+          GSPREAD_AUTHORIZED_USER_JSON: ${{ secrets.GSPREAD_AUTHORIZED_USER_JSON }}
+        run: |
+          if [ -n "$GSPREAD_CREDENTIALS_JSON" ] && [ -n "$GSPREAD_AUTHORIZED_USER_JSON" ]; then
+            echo "$GSPREAD_CREDENTIALS_JSON" > gspread_credentials.json
+            echo "$GSPREAD_AUTHORIZED_USER_JSON" > gspread_authorized_user.json
+            echo "OAuth files created (will use OAuth for source copy)"
+          else
+            echo "OAuth secrets not set - ensure source sheet is shared with service account"
+          fi
+
       - name: Run Meesho Debit Master Sync
         env:
           GMAIL_SENDER_EMAIL: ${{ secrets.GMAIL_SENDER_EMAIL }}
