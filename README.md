@@ -60,6 +60,17 @@ python meesho_debit_master_sync.py --reauth  # First time: opens browser to sign
 - **Source**: [Meesho Debit Master](https://docs.google.com/spreadsheets/d/1ZGJevEXRdBEy4HOUdfxi5X_F3gOU4FpdM0eOZH7Tf6E/edit) (shared with service account or your OAuth account)
 - **Destination**: Meesho_Automated_Reports → Debit Master worksheet
 
+## Schedule (Daily at 8 PM IST)
+
+**Windows Task Scheduler** (run as Administrator). Uses your PC's local time—set Windows timezone to **(UTC+05:30) India** for 8 PM IST.
+
+```powershell
+cd "C:\path\to\Meesho_DebitMaster_Automation"
+.\schedule_meesho_debit_master.ps1
+```
+
+The task `MeeshoDebitMasterSync` runs daily at 8:00 PM. Test manually: `Start-ScheduledTask -TaskName 'MeeshoDebitMasterSync'`
+
 ## OAuth Setup (Optional)
 
 When the source sheet isn't shared with the service account, use OAuth so the script runs the copy with your Google account. See [MEESHO_DEBIT_MASTER_OAUTH_SETUP.md](MEESHO_DEBIT_MASTER_OAUTH_SETUP.md).
