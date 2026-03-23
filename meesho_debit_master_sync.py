@@ -42,7 +42,8 @@ SCOPES = [
 SOURCE_SHEET_ID = "1ZGJevEXRdBEy4HOUdfxi5X_F3gOU4FpdM0eOZH7Tf6E"
 
 # Destination: same as Meesho reports
-DEST_SHEET_ID = os.getenv("MEESHO_SPREADSHEET_ID", "1qnqzVf-S41F4S6DN8CRtXVgk-BcsaW377aVVEyFrnzg")
+_DEFAULT_DEST_ID = "1qnqzVf-S41F4S6DN8CRtXVgk-BcsaW377aVVEyFrnzg"
+DEST_SHEET_ID = os.getenv("MEESHO_SPREADSHEET_ID") or _DEFAULT_DEST_ID
 DEST_WORKSHEET_NAME = "Debit Master"
 
 # Fixed copy title - replaces existing copy instead of creating new each run
@@ -865,28 +866,20 @@ def main():
             print("  Enable Google Sheets API: https://console.cloud.google.com/apis/library/sheets.googleapis.com")
             return
         # Analyze and push summary (or raw if --raw)
+        # Use OAuth for destination too (same account has access to both source and dest)
+        gc_dest = gspread.authorize(oauth_creds)
         if not args.raw:
             print("  Analyzing...")
             df_debit = analyze_debit_data(df, date.today().isoformat())
             df_recovered = analyze_recovered_data(df)
             df_pending = analyze_pending_data(df)
             df_recovery_pending_raw = get_recovery_pending_raw(df, include_closed_hubs=not args.pending_active_hubs_only, apply_date_cutoff=not args.pending_include_all_dates)
-            if not SERVICE_ACCOUNT_FILE.exists():
-                print(f"ERROR: {SERVICE_ACCOUNT_FILE} not found")
-                return
-            sa_creds = Credentials.from_service_account_file(str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
-            gc_dest = gspread.authorize(sa_creds)
             ok = push_to_destination(gc_dest, dest_id, df_debit, df_recovered, df_pending, df_recovery_pending_raw, args.dest_worksheet)
             if ok and not args.no_email and df_recovery_pending_raw is not None and not df_recovery_pending_raw.empty:
                 _send_recovery_pending_email(df_recovery_pending_raw)
             if ok and not args.no_whatsapp:
                 _send_debit_master_to_whatsapp(gc_dest, dest_id, args.dest_worksheet)
         else:
-            if not SERVICE_ACCOUNT_FILE.exists():
-                print(f"ERROR: {SERVICE_ACCOUNT_FILE} not found")
-                return
-            sa_creds = Credentials.from_service_account_file(str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
-            gc_dest = gspread.authorize(sa_creds)
             ok = push_to_destination(gc_dest, dest_id, df, None, None, None, args.dest_worksheet)
             if ok and not args.no_whatsapp:
                 _send_debit_master_to_whatsapp(gc_dest, dest_id, args.dest_worksheet)
