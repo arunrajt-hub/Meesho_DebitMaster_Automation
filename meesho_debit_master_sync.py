@@ -508,7 +508,18 @@ def _apply_table_format(ws, start_row: int, nrows: int, ncols: int, date_col: st
 
 def push_to_destination(gc, dest_id: str, df_debit, df_recovered=None, df_pending=None, df_recovery_pending_raw=None, worksheet_name: str = DEST_WORKSHEET_NAME) -> bool:
     """Push Debit, Pending (2nd), Recovered (3rd) tables to Debit Master. Push raw recovery pending to 'Recovery pending' sheet."""
-    sh = gc.open_by_key(dest_id)
+    if not dest_id or not str(dest_id).strip():
+        print("  [ERROR] Destination spreadsheet ID is empty. Set MEESHO_SPREADSHEET_ID or ensure default is correct.")
+        return False
+    print(f"  Pushing to destination: {dest_id}")
+    try:
+        sh = gc.open_by_key(dest_id)
+    except gspread.exceptions.SpreadsheetNotFound:
+        print(f"  [ERROR] Destination spreadsheet not found (404). Share it with Editor access:")
+        print(f"    https://docs.google.com/spreadsheets/d/{dest_id}/edit")
+        print(f"  When using OAuth: share with the Google account you signed in with.")
+        print(f"  When using Service Account: share with your SA client_email from service_account_key.json")
+        return False
     try:
         ws = sh.worksheet(worksheet_name)
     except gspread.WorksheetNotFound:
@@ -866,7 +877,7 @@ def main():
             print("  Enable Google Sheets API: https://console.cloud.google.com/apis/library/sheets.googleapis.com")
             return
         # Analyze and push summary (or raw if --raw)
-        # Use OAuth for destination too (same account has access to both source and dest)
+        # Try OAuth for destination first; fallback to service account if OAuth gets 404
         gc_dest = gspread.authorize(oauth_creds)
         if not args.raw:
             print("  Analyzing...")
@@ -875,12 +886,22 @@ def main():
             df_pending = analyze_pending_data(df)
             df_recovery_pending_raw = get_recovery_pending_raw(df, include_closed_hubs=not args.pending_active_hubs_only, apply_date_cutoff=not args.pending_include_all_dates)
             ok = push_to_destination(gc_dest, dest_id, df_debit, df_recovered, df_pending, df_recovery_pending_raw, args.dest_worksheet)
+            if not ok and SERVICE_ACCOUNT_FILE.exists():
+                print("  OAuth push failed, retrying with service account...")
+                sa_creds = Credentials.from_service_account_file(str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
+                gc_dest = gspread.authorize(sa_creds)
+                ok = push_to_destination(gc_dest, dest_id, df_debit, df_recovered, df_pending, df_recovery_pending_raw, args.dest_worksheet)
             if ok and not args.no_email and df_recovery_pending_raw is not None and not df_recovery_pending_raw.empty:
                 _send_recovery_pending_email(df_recovery_pending_raw)
             if ok and not args.no_whatsapp:
                 _send_debit_master_to_whatsapp(gc_dest, dest_id, args.dest_worksheet)
         else:
             ok = push_to_destination(gc_dest, dest_id, df, None, None, None, args.dest_worksheet)
+            if not ok and SERVICE_ACCOUNT_FILE.exists():
+                print("  OAuth push failed, retrying with service account...")
+                sa_creds = Credentials.from_service_account_file(str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
+                gc_dest = gspread.authorize(sa_creds)
+                ok = push_to_destination(gc_dest, dest_id, df, None, None, None, args.dest_worksheet)
             if ok and not args.no_whatsapp:
                 _send_debit_master_to_whatsapp(gc_dest, dest_id, args.dest_worksheet)
         print("Done.")
